@@ -46,6 +46,8 @@ let currentMode = 'barcode';
 let cocoModel = null;
 let aiInterval = null;
 
+const btnSnapOcr = document.getElementById('btn-snap-ocr');
+
 modeRadios.forEach(radio => {
   radio.addEventListener('change', async (e) => {
     currentMode = e.target.value;
@@ -53,6 +55,7 @@ modeRadios.forEach(radio => {
     ctx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
 
     if (currentMode === 'ai') {
+      btnSnapOcr.style.display = 'none';
       if (!cocoModel) {
         aiLoading.style.display = 'flex';
         aiLoading.textContent = "Mendownload Otak AI (Tergantung Internet)...";
@@ -68,10 +71,50 @@ modeRadios.forEach(radio => {
       } else {
         startAIDetection();
       }
+    } else if (currentMode === 'ocr') {
+      stopAIDetection();
+      btnSnapOcr.style.display = 'block';
     } else {
+      btnSnapOcr.style.display = 'none';
       stopAIDetection();
     }
   });
+});
+
+btnSnapOcr.addEventListener('click', async () => {
+  const video = document.querySelector('#reader video');
+  if (!video) return;
+
+  btnSnapOcr.disabled = true;
+  btnSnapOcr.textContent = '⏳ Membaca Teks...';
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  try {
+    const result = await Tesseract.recognize(canvas, 'ind', {
+      logger: m => console.log(m)
+    });
+    
+    const text = result.data.text.trim();
+    if (text) {
+      sendToHost({ ocrText: text });
+      statusFooter.textContent = '✅ Teks terkirim ke Kasir';
+      statusFooter.style.color = 'var(--success-color)';
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    } else {
+      alert("Tidak ada teks yang terbaca.");
+    }
+  } catch (err) {
+    console.error("OCR Error:", err);
+    alert("Gagal membaca teks.");
+  }
+  
+  btnSnapOcr.disabled = false;
+  btnSnapOcr.textContent = '📸 Jepret Teks';
 });
 
 let lastAiDetectTime = 0;
