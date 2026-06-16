@@ -46,6 +46,10 @@ hpHoldOverlay.style.justifyContent = 'center';
 hpHoldOverlay.style.zIndex = '8';
 hpHoldOverlay.style.cursor = 'pointer';
 hpHoldOverlay.style.transition = 'opacity 0.2s';
+hpHoldOverlay.style.userSelect = 'none';
+hpHoldOverlay.style.webkitUserSelect = 'none';
+hpHoldOverlay.style.webkitTouchCallout = 'none';
+hpHoldOverlay.style.touchAction = 'none';
 hpHoldOverlay.innerHTML = `
   <div style="font-size: 40px; margin-bottom: 10px;">👆</div>
   <div style="font-weight: bold; letter-spacing: 1px;">Tahan Layar Untuk Scan</div>
@@ -62,9 +66,10 @@ const stopHpScan = (e) => {
 };
 
 hpHoldOverlay.addEventListener('mousedown', startHpScan);
-hpHoldOverlay.addEventListener('touchstart', startHpScan);
+hpHoldOverlay.addEventListener('touchstart', startHpScan, {passive: false});
 window.addEventListener('mouseup', stopHpScan);
 window.addEventListener('touchend', stopHpScan);
+hpHoldOverlay.addEventListener('contextmenu', (e) => e.preventDefault());
 
 let lastScannedBarcode = null;
 

@@ -464,6 +464,10 @@ laptopHoldOverlay.style.justifyContent = 'center';
 laptopHoldOverlay.style.zIndex = '8'; // Di bawah loading AI tapi di atas canvas
 laptopHoldOverlay.style.cursor = 'pointer';
 laptopHoldOverlay.style.transition = 'opacity 0.2s';
+laptopHoldOverlay.style.userSelect = 'none';
+laptopHoldOverlay.style.webkitUserSelect = 'none';
+laptopHoldOverlay.style.webkitTouchCallout = 'none';
+laptopHoldOverlay.style.touchAction = 'none';
 laptopHoldOverlay.innerHTML = `
   <div style="font-size: 40px; margin-bottom: 10px;">👆</div>
   <div style="font-weight: bold; letter-spacing: 1px;">Tahan Layar Untuk Scan</div>
@@ -480,9 +484,10 @@ const stopLaptopScan = (e) => {
 };
 
 laptopHoldOverlay.addEventListener('mousedown', startLaptopScan);
-laptopHoldOverlay.addEventListener('touchstart', startLaptopScan);
+laptopHoldOverlay.addEventListener('touchstart', startLaptopScan, {passive: false});
 window.addEventListener('mouseup', stopLaptopScan);
 window.addEventListener('touchend', stopLaptopScan);
+laptopHoldOverlay.addEventListener('contextmenu', (e) => e.preventDefault());
 
 function startLocalCamera(cameraId) {
   if (!localScanner) {
