@@ -371,29 +371,26 @@ function stopAIDetection() {
   ctx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
 }
 
-btnToggleScanner.addEventListener('click', () => {
-  if (!isLocalScannerRunning) {
-    laptopReaderContainer.style.display = 'block';
-    btnToggleScanner.textContent = 'Tutup Kamera Laptop';
-    btnToggleScanner.style.backgroundColor = 'var(--danger-color)';
-    
-    if (!localScanner) {
-      localScanner = new Html5Qrcode("laptop-reader");
-    }
+const laptopCameraSelect = document.getElementById('laptop-camera-select');
 
-    const config = { 
-      fps: 30, 
-      formatsToSupport: [ 
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.QR_CODE
-      ]
-    };
+function startLocalCamera(cameraId) {
+  if (!localScanner) {
+    localScanner = new Html5Qrcode("laptop-reader");
+  }
 
-    localScanner.start({ facingMode: "environment" }, config, (decodedText) => {
-      // Barcode logic
+  const config = { 
+    fps: 30, 
+    formatsToSupport: [ 
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.QR_CODE
+    ]
+  };
+
+  const startFn = () => {
+    localScanner.start(cameraId, config, (decodedText) => {
       if (currentMode !== 'barcode') return;
       if (localScanner.getState() === Html5QrcodeScannerState.PAUSED) return;
       
@@ -408,6 +405,47 @@ btnToggleScanner.addEventListener('click', () => {
     }).catch(err => {
       console.error(err);
       alert("Gagal membuka kamera laptop.");
+    });
+  };
+
+  if (localScanner.isScanning) {
+    stopAIDetection();
+    localScanner.stop().then(startFn);
+  } else {
+    startFn();
+  }
+}
+
+btnToggleScanner.addEventListener('click', () => {
+  if (!isLocalScannerRunning) {
+    laptopReaderContainer.style.display = 'block';
+    btnToggleScanner.textContent = 'Tutup Kamera Laptop';
+    btnToggleScanner.style.backgroundColor = 'var(--danger-color)';
+    
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        laptopCameraSelect.innerHTML = '';
+        devices.forEach(device => {
+          const option = document.createElement('option');
+          option.value = device.id;
+          option.text = device.label || `Kamera ${laptopCameraSelect.length + 1}`;
+          laptopCameraSelect.appendChild(option);
+        });
+
+        let defaultCamera = devices.find(d => d.label.toLowerCase().includes('back') && !d.label.toLowerCase().includes('wide'));
+        if (!defaultCamera) defaultCamera = devices.find(d => d.label.toLowerCase().includes('back'));
+        
+        const selectedCameraId = defaultCamera ? defaultCamera.id : devices[devices.length - 1].id;
+        laptopCameraSelect.value = selectedCameraId;
+
+        startLocalCamera(selectedCameraId);
+
+        laptopCameraSelect.addEventListener('change', (e) => {
+          startLocalCamera(e.target.value);
+        });
+      }
+    }).catch(err => {
+      console.error(err);
     });
     
     isLocalScannerRunning = true;
@@ -424,9 +462,8 @@ btnToggleScanner.addEventListener('click', () => {
   }
 });
 
-// Auto-start kamera utama (Laptop)
 window.addEventListener('load', () => {
   setTimeout(() => {
     btnToggleScanner.click();
-  }, 1000); // Jeda sebentar agar elemen lain selesai dimuat
+  }, 1000);
 });

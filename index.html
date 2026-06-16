@@ -39,7 +39,12 @@
         <label><input type="radio" name="laptop-mode" value="ai" checked> 🤖 Deteksi Benda (AI)</label>
       </div>
 
-      <button id="btn-toggle-scanner" class="btn btn-primary" style="background-color: var(--primary-color);">📷 Gunakan Kamera Laptop</button>
+      <button id="btn-toggle-scanner" class="btn btn-primary" style="background-color: var(--primary-color); margin-bottom: 10px;">📷 Gunakan Kamera Laptop</button>
+      
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label>Pilih Kamera:</label>
+        <select id="laptop-camera-select" class="modal-input" style="max-width: 300px; margin: 0 auto;"></select>
+      </div>
       
       <div id="laptop-reader-container" style="position: relative; display: none; margin-top: 20px; border-radius: var(--radius-md); overflow: hidden; height: 350px;">
         <div id="ai-loading" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:var(--primary-color); align-items:center; justify-content:center; z-index:10; font-weight:bold; letter-spacing:1px;">Memuat Otak AI...</div>
