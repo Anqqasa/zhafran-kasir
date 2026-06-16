@@ -438,9 +438,23 @@ btnToggleScanner.addEventListener('click', () => {
         const selectedCameraId = defaultCamera ? defaultCamera.id : devices[devices.length - 1].id;
         laptopCameraSelect.value = selectedCameraId;
 
+        // Terapkan efek cermin HANYA jika bukan kamera belakang
+        const isBackCamera = defaultCamera !== undefined || (devices[devices.length - 1].label && devices[devices.length - 1].label.toLowerCase().includes('back'));
+        if (isBackCamera) {
+          laptopReader.classList.remove('mirror-camera');
+        } else {
+          laptopReader.classList.add('mirror-camera');
+        }
+
         startLocalCamera(selectedCameraId);
 
         laptopCameraSelect.addEventListener('change', (e) => {
+          const selectedOption = laptopCameraSelect.options[laptopCameraSelect.selectedIndex].text.toLowerCase();
+          if (selectedOption.includes('back') || selectedOption.includes('belakang') || selectedOption.includes('environment')) {
+            laptopReader.classList.remove('mirror-camera');
+          } else {
+            laptopReader.classList.add('mirror-camera');
+          }
           startLocalCamera(e.target.value);
         });
       }
