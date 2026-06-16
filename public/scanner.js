@@ -1,18 +1,42 @@
-const socket = io();
-
+// --- WebRTC PeerJS Setup ---
 const statusFooter = document.getElementById('status-footer');
 
-socket.on('connect', () => {
+const peer = new Peer();
+let hostConn = null;
+
+peer.on('open', (id) => {
+  statusFooter.textContent = '🟡 Mencari Kasir Utama...';
+  statusFooter.style.color = 'orange';
+  
+  hostConn = peer.connect('zhafran-kasir-utama', { reliable: true });
+  
+  hostConn.on('open', () => {
     statusFooter.textContent = '🟢 Terhubung ke Kasir';
     statusFooter.style.color = 'var(--success-color)';
+  });
+  
+  hostConn.on('close', () => {
+    statusFooter.textContent = '🔴 Terputus dari Kasir';
+    statusFooter.style.color = 'var(--danger-color)';
+  });
 });
 
-socket.on('disconnect', () => {
-    statusFooter.textContent = '🔴 Terputus...';
-    statusFooter.style.color = 'var(--danger-color)';
+peer.on('error', (err) => {
+  console.error("PeerJS Error:", err);
+  statusFooter.textContent = '🔴 Gagal Terhubung';
+  statusFooter.style.color = 'var(--danger-color)';
 });
 
 let lastScannedBarcode = null;
+
+// Send data helper
+function sendToHost(data) {
+  if (hostConn && hostConn.open) {
+    hostConn.send(data);
+  } else {
+    alert("Belum terhubung ke layar kasir utama!");
+  }
+}
 
 // --- AI Detection Logic ---
 const modeRadios = document.getElementsByName('hp-mode');
@@ -134,7 +158,7 @@ function startAIDetection() {
              const mappedId = aiItemMap[prediction.class] || `AI-${prediction.class.toUpperCase()}`;
              
              lastAiDetectTime = now;
-             socket.emit('scan_barcode', { barcode: mappedId });
+             sendToHost({ barcode: mappedId });
              
              statusFooter.textContent = `✅ AI: ${itemNameIdn}`;
              statusFooter.style.color = 'var(--success-color)';
@@ -172,12 +196,12 @@ function stopAIDetection() {
 function onScanSuccess(decodedText, decodedResult) {
   if (currentMode !== 'barcode') return; // Abaikan jika mode AI
 
-  if (html5QrCode.getState() === Html5QrcodeScannerState.PAUSED) {
+  if (html5QrCode && html5QrCode.getState() === Html5QrcodeScannerState.PAUSED) {
     return;
   }
   
   html5QrCode.pause();
-  socket.emit('scan_barcode', { barcode: decodedText });
+  sendToHost({ barcode: decodedText });
 
   statusFooter.textContent = `✅ Scan: ${decodedText}`;
   statusFooter.style.color = 'var(--success-color)';

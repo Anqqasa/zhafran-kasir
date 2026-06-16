@@ -1,4 +1,8 @@
-const socket = io();
+// --- WebRTC PeerJS Setup ---
+const connStatus = document.getElementById('connection-status');
+const connDot = document.getElementById('connection-dot');
+
+const peer = new Peer('zhafran-kasir-utama');
 
 // --- Database & State ---
 const productDB = {
@@ -14,22 +18,29 @@ let cart = {};
 const cartList = document.getElementById('cart-list');
 const totalPriceEl = document.getElementById('total-price');
 const btnPay = document.getElementById('btn-pay');
-const connStatus = document.getElementById('connection-status');
-const connDot = document.getElementById('connection-dot');
 
-// --- Socket Events ---
-socket.on('connect', () => {
-  connStatus.textContent = "Server Terhubung";
+peer.on('open', (id) => {
+  connStatus.textContent = "Sistem Utama Siap (WebRTC)";
   connDot.classList.add('connected');
 });
 
-socket.on('disconnect', () => {
-  connStatus.textContent = "Terputus dari Server";
+peer.on('connection', (conn) => {
+  conn.on('data', (data) => {
+    if (data.barcode) {
+      addToCart(data.barcode);
+    }
+  });
+});
+
+peer.on('disconnected', () => {
+  connStatus.textContent = "Sistem Offline";
   connDot.classList.remove('connected');
 });
 
-socket.on('barcode_scanned', (data) => {
-  addToCart(data.barcode);
+peer.on('error', (err) => {
+  console.error("PeerJS Error:", err);
+  connStatus.textContent = "Error Koneksi";
+  connDot.classList.remove('connected');
 });
 
 // --- Logic ---
