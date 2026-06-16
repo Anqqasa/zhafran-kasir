@@ -27,6 +27,47 @@ peer.on('error', (err) => {
   statusFooter.style.color = 'var(--danger-color)';
 });
 
+let isHoldToScanActive = false;
+
+// --- Setup Hold-to-Scan UI ---
+const readerContainer = document.getElementById('reader-container');
+const hpHoldOverlay = document.createElement('div');
+hpHoldOverlay.style.position = 'absolute';
+hpHoldOverlay.style.top = '0';
+hpHoldOverlay.style.left = '0';
+hpHoldOverlay.style.width = '100%';
+hpHoldOverlay.style.height = '100%';
+hpHoldOverlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+hpHoldOverlay.style.color = 'white';
+hpHoldOverlay.style.display = 'flex';
+hpHoldOverlay.style.flexDirection = 'column';
+hpHoldOverlay.style.alignItems = 'center';
+hpHoldOverlay.style.justifyContent = 'center';
+hpHoldOverlay.style.zIndex = '8';
+hpHoldOverlay.style.cursor = 'pointer';
+hpHoldOverlay.style.transition = 'opacity 0.2s';
+hpHoldOverlay.innerHTML = `
+  <div style="font-size: 40px; margin-bottom: 10px;">👆</div>
+  <div style="font-weight: bold; letter-spacing: 1px;">Tahan Layar Untuk Scan</div>
+`;
+readerContainer.appendChild(hpHoldOverlay);
+
+const startHpScan = (e) => {
+  e.preventDefault();
+  isHoldToScanActive = true;
+  hpHoldOverlay.style.opacity = '0';
+};
+const stopHpScan = (e) => {
+  e.preventDefault();
+  isHoldToScanActive = false;
+  hpHoldOverlay.style.opacity = '1';
+};
+
+hpHoldOverlay.addEventListener('mousedown', startHpScan);
+hpHoldOverlay.addEventListener('touchstart', startHpScan);
+window.addEventListener('mouseup', stopHpScan);
+window.addEventListener('touchend', stopHpScan);
+
 let lastScannedBarcode = null;
 
 // Send data helper
@@ -46,7 +87,7 @@ let currentMode = 'barcode';
 let isOcrRunning = false;
 
 async function runBackgroundOCR() {
-  if (currentMode !== 'ai' || !isAiDetecting || isOcrRunning) return;
+  if (currentMode !== 'ai' || !isAiDetecting || isOcrRunning || !isHoldToScanActive) return;
   const video = document.querySelector('#reader video');
   if (!video || video.videoWidth === 0) return;
 
@@ -144,6 +185,11 @@ function startAIDetection() {
   
   async function detectFrame() {
     if (!isAiDetecting) return;
+    if (!isHoldToScanActive) {
+      ctx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
+      requestAnimationFrame(detectFrame);
+      return;
+    }
     if (html5QrCode && html5QrCode.getState() === Html5QrcodeScannerState.PAUSED) {
       requestAnimationFrame(detectFrame);
       return;
@@ -233,7 +279,7 @@ function stopAIDetection() {
 }
 
 function onScanSuccess(decodedText, decodedResult) {
-  if (currentMode !== 'barcode') return; // Abaikan jika mode AI
+  if (currentMode !== 'barcode' || !isHoldToScanActive) return; // Abaikan jika mode AI atau tidak menahan layar
 
   if (html5QrCode && html5QrCode.getState() === Html5QrcodeScannerState.PAUSED) {
     return;

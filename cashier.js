@@ -2,6 +2,8 @@
 const connStatus = document.getElementById('connection-status');
 const connDot = document.getElementById('connection-dot');
 
+let isHoldToScanActive = false;
+
 const peer = new Peer('zhafran-kasir-utama');
 
 // --- Database & State ---
@@ -182,7 +184,7 @@ let lastAiDetectTime = 0;
 let isOcrRunning = false;
 
 async function runBackgroundOCR() {
-  if (currentMode !== 'ai' || !isAiDetecting || isOcrRunning) return;
+  if (currentMode !== 'ai' || !isAiDetecting || isOcrRunning || !isHoldToScanActive) return;
   const video = document.querySelector('#laptop-reader video');
   if (!video || video.videoWidth === 0) return;
 
@@ -358,6 +360,11 @@ function startAIDetection() {
   
   async function detectFrame() {
     if (!isAiDetecting) return;
+    if (!isHoldToScanActive) {
+      ctx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
+      requestAnimationFrame(detectFrame);
+      return;
+    }
     if (localScanner && localScanner.getState() === Html5QrcodeScannerState.PAUSED) {
       requestAnimationFrame(detectFrame);
       return;
@@ -440,6 +447,46 @@ function stopAIDetection() {
 }
 
 const laptopCameraSelect = document.getElementById('laptop-camera-select');
+let isLocalScannerRunning = false;
+
+// --- Setup Hold-to-Scan UI ---
+const laptopContainer = document.getElementById('laptop-reader-container');
+const laptopHoldOverlay = document.createElement('div');
+laptopHoldOverlay.style.position = 'absolute';
+laptopHoldOverlay.style.top = '0';
+laptopHoldOverlay.style.left = '0';
+laptopHoldOverlay.style.width = '100%';
+laptopHoldOverlay.style.height = '100%';
+laptopHoldOverlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+laptopHoldOverlay.style.color = 'white';
+laptopHoldOverlay.style.display = 'flex';
+laptopHoldOverlay.style.flexDirection = 'column';
+laptopHoldOverlay.style.alignItems = 'center';
+laptopHoldOverlay.style.justifyContent = 'center';
+laptopHoldOverlay.style.zIndex = '8'; // Di bawah loading AI tapi di atas canvas
+laptopHoldOverlay.style.cursor = 'pointer';
+laptopHoldOverlay.style.transition = 'opacity 0.2s';
+laptopHoldOverlay.innerHTML = `
+  <div style="font-size: 40px; margin-bottom: 10px;">👆</div>
+  <div style="font-weight: bold; letter-spacing: 1px;">Tahan Layar Untuk Scan</div>
+`;
+laptopContainer.appendChild(laptopHoldOverlay);
+
+const startLaptopScan = (e) => {
+  e.preventDefault();
+  isHoldToScanActive = true;
+  laptopHoldOverlay.style.opacity = '0';
+};
+const stopLaptopScan = (e) => {
+  e.preventDefault();
+  isHoldToScanActive = false;
+  laptopHoldOverlay.style.opacity = '1';
+};
+
+laptopHoldOverlay.addEventListener('mousedown', startLaptopScan);
+laptopHoldOverlay.addEventListener('touchstart', startLaptopScan);
+window.addEventListener('mouseup', stopLaptopScan);
+window.addEventListener('touchend', stopLaptopScan);
 
 function startLocalCamera(cameraId) {
   if (!localScanner) {
@@ -459,7 +506,7 @@ function startLocalCamera(cameraId) {
 
   const startFn = () => {
     localScanner.start(cameraId, config, (decodedText) => {
-      if (currentMode !== 'barcode') return;
+      if (currentMode !== 'barcode' || !isHoldToScanActive) return;
       if (localScanner.getState() === Html5QrcodeScannerState.PAUSED) return;
       
       localScanner.pause();
@@ -471,8 +518,7 @@ function startLocalCamera(cameraId) {
     }).then(() => {
       if (currentMode === 'ai') startAIDetection();
     }).catch(err => {
-      console.error(err);
-      alert("Gagal membuka kamera laptop.");
+      console.error("Camera start error:", err);
     });
   };
 
