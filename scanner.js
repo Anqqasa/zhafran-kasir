@@ -55,14 +55,19 @@ modeRadios.forEach(radio => {
     if (currentMode === 'ai') {
       if (!cocoModel) {
         aiLoading.style.display = 'flex';
-        try {
-          cocoModel = await cocoSsd.load();
-        } catch(err) {
-          alert("Gagal memuat AI.");
-        }
-        aiLoading.style.display = 'none';
+        aiLoading.textContent = "Mendownload Otak AI (Tergantung Internet)...";
+        cocoSsd.load().then(model => {
+          cocoModel = model;
+          aiLoading.style.display = 'none';
+          if (currentMode === 'ai') startAIDetection();
+        }).catch(err => {
+          console.error(err);
+          aiLoading.textContent = "Gagal memuat AI.";
+          setTimeout(() => { aiLoading.style.display = 'none'; }, 2000);
+        });
+      } else {
+        startAIDetection();
       }
-      startAIDetection();
     } else {
       stopAIDetection();
     }

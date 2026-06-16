@@ -33,8 +33,12 @@ peer.on('connection', (conn) => {
 });
 
 peer.on('disconnected', () => {
-  connStatus.textContent = "Sistem Offline";
+  connStatus.textContent = "Menyambung Ulang...";
   connDot.classList.remove('connected');
+  // Coba reconnect secara otomatis
+  setTimeout(() => {
+    if (!peer.destroyed) peer.reconnect();
+  }, 2000);
 });
 
 peer.on('error', (err) => {
@@ -481,22 +485,29 @@ btnToggleScanner.addEventListener('click', () => {
   }
 });
 
-window.addEventListener('load', async () => {
-  if (currentMode === 'ai') {
-    const targetBox = document.getElementById('laptop-targeting-box');
-    targetBox.style.display = 'block';
-    if (!cocoModel) {
-      aiLoading.style.display = 'flex';
-      try {
-        cocoModel = await cocoSsd.load();
-      } catch(err) {
-        console.error("Gagal memuat AI on load", err);
-      }
-      aiLoading.style.display = 'none';
-    }
-  }
-
+window.addEventListener('load', () => {
+  // Langsung nyalakan kamera tanpa menunggu AI
   setTimeout(() => {
     btnToggleScanner.click();
   }, 1000);
+
+  // Muat AI secara background agar tidak membuat web freeze
+  if (currentMode === 'ai') {
+    const targetBox = document.getElementById('laptop-targeting-box');
+    targetBox.style.display = 'block';
+    
+    if (!cocoModel) {
+      aiLoading.style.display = 'flex';
+      aiLoading.textContent = "Mendownload Otak AI (Tergantung Internet)...";
+      
+      cocoSsd.load().then(model => {
+        cocoModel = model;
+        aiLoading.style.display = 'none';
+        if (isLocalScannerRunning) startAIDetection();
+      }).catch(err => {
+        console.error("Gagal memuat AI on load", err);
+        aiLoading.textContent = "Gagal memuat AI. Pastikan internet stabil.";
+      });
+    }
+  }
 });
