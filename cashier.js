@@ -392,7 +392,7 @@ btnToggleScanner.addEventListener('click', () => {
       ]
     };
 
-    localScanner.start({ facingMode: "user" }, config, (decodedText) => {
+    localScanner.start({ facingMode: "environment" }, config, (decodedText) => {
       // Barcode logic
       if (currentMode !== 'barcode') return;
       if (localScanner.getState() === Html5QrcodeScannerState.PAUSED) return;
