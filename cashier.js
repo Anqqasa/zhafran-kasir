@@ -447,11 +447,7 @@ function stopAIDetection() {
 }
 
 const laptopCameraSelect = document.getElementById('laptop-camera-select');
-let isLocalScannerRunning = false;
-
 // --- Setup Hold-to-Scan UI ---
-const laptopReaderContainer = document.getElementById('laptop-reader-container');
-const laptopReader = document.getElementById('laptop-reader');
 const laptopContainer = document.getElementById('laptop-reader-container');
 const laptopHoldOverlay = document.createElement('div');
 laptopHoldOverlay.style.position = 'absolute';
