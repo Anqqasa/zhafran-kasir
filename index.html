@@ -41,8 +41,7 @@
       
       <div class="mode-toggle">
         <label><input type="radio" name="laptop-mode" value="barcode"> 📱 Barcode</label>
-        <label><input type="radio" name="laptop-mode" value="ai" checked> 🤖 Deteksi Benda (AI)</label>
-        <label><input type="radio" name="laptop-mode" value="ocr"> 📖 Baca Teks</label>
+        <label><input type="radio" name="laptop-mode" value="ai" checked> 🤖 Deteksi Benda (AI) & Teks</label>
       </div>
 
       <button id="btn-toggle-scanner" class="btn btn-primary" style="background-color: var(--primary-color); margin-bottom: 10px;">📷 Gunakan Kamera Laptop</button>
@@ -57,7 +56,6 @@
         <div id="laptop-reader" style="width:100%; height:100%;"></div>
         <canvas id="laptop-ai-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:5; pointer-events:none;"></canvas>
         <div class="targeting-box" id="laptop-targeting-box" style="display:none;"></div>
-        <button id="btn-snap-ocr" class="btn btn-primary" style="display:none; position:absolute; bottom:20px; left:50%; transform:translateX(-50%); z-index:20; box-shadow:0 4px 10px rgba(0,0,0,0.5);">📸 Jepret & Baca Teks</button>
       </div>
     </section>
 

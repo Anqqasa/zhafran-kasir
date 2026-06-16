@@ -179,7 +179,45 @@ const aiItemMap = {
 
 let lastAiDetectTime = 0;
 
-const btnSnapOcr = document.getElementById('btn-snap-ocr');
+let isOcrRunning = false;
+
+async function runBackgroundOCR() {
+  if (currentMode !== 'ai' || !isAiDetecting || isOcrRunning) return;
+  const video = document.querySelector('#laptop-reader video');
+  if (!video || video.videoWidth === 0) return;
+
+  isOcrRunning = true;
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  try {
+    const result = await Tesseract.recognize(canvas, 'ind');
+    const text = result.data.text.toLowerCase();
+    
+    for (const [barcode, product] of Object.entries(productDB)) {
+      const productNameWords = product.name.toLowerCase().split(' ');
+      if (productNameWords.some(word => word.length > 3 && text.includes(word))) {
+        const now = Date.now();
+        if (now - lastAiDetectTime > 4000) {
+           addToCart(barcode);
+           lastAiDetectTime = now;
+           break;
+        }
+      }
+    }
+  } catch (err) {
+    // Abaikan error background
+  }
+  
+  isOcrRunning = false;
+}
+
+// Jalankan OCR setiap 3 detik di latar belakang
+setInterval(runBackgroundOCR, 3000);
 
 modeRadios.forEach(radio => {
   radio.addEventListener('change', async (e) => {
@@ -189,7 +227,6 @@ modeRadios.forEach(radio => {
     const targetBox = document.getElementById('laptop-targeting-box');
 
     if (currentMode === 'ai') {
-      btnSnapOcr.style.display = 'none';
       targetBox.style.display = 'block';
       if (!cocoModel) {
         aiLoading.style.display = 'flex';
@@ -205,60 +242,11 @@ modeRadios.forEach(radio => {
       } else {
         if (isLocalScannerRunning) startAIDetection();
       }
-    } else if (currentMode === 'ocr') {
-      targetBox.style.display = 'none';
-      stopAIDetection();
-      btnSnapOcr.style.display = 'block';
     } else {
-      btnSnapOcr.style.display = 'none';
       targetBox.style.display = 'none';
       stopAIDetection();
     }
   });
-});
-
-btnSnapOcr.addEventListener('click', async () => {
-  const video = document.querySelector('#laptop-reader video');
-  if (!video) return;
-
-  btnSnapOcr.disabled = true;
-  btnSnapOcr.textContent = '⏳ Membaca Teks...';
-  
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  try {
-    const result = await Tesseract.recognize(canvas, 'ind', {
-      logger: m => console.log(m)
-    });
-    
-    const text = result.data.text.toLowerCase();
-    let found = false;
-    
-    // Cari kecocokan di database
-    for (const [barcode, product] of Object.entries(productDB)) {
-      const productNameWords = product.name.toLowerCase().split(' ');
-      // Jika salah satu kata dari nama produk ada di teks OCR
-      if (productNameWords.some(word => word.length > 3 && text.includes(word))) {
-        addToCart(barcode);
-        found = true;
-        break; // Hanya tambahkan satu per jepretan
-      }
-    }
-    
-    if (!found) {
-      alert("Teks berhasil dibaca, tapi tidak ada barang yang cocok di database!\nTeks terbaca:\n" + result.data.text.substring(0, 50) + "...");
-    }
-  } catch (err) {
-    console.error("OCR Error:", err);
-    alert("Gagal membaca teks.");
-  }
-  
-  btnSnapOcr.disabled = false;
-  btnSnapOcr.textContent = '📸 Jepret & Baca Teks';
 });
 
 // Update Cart UI (Bisa Edit)
