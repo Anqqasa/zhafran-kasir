@@ -7,12 +7,8 @@ let isHoldToScanActive = false;
 const peer = new Peer('zhafran-kasir-utama');
 
 // --- Database & State ---
-const productDB = {
-  "1234567890128": { name: "Indomie Goreng Spesial", price: 3500 },
-  "8999999195674": { name: "Aqua Botol 600ml", price: 3000 },
-  "8998009010041": { name: "Taro Snack Seaweed", price: 5000 },
-  "8990381100224": { name: "Teh Pucuk Harum 350ml", price: 4000 }
-};
+// Menggunakan API Eksternal
+const API_BASE_URL = "https://api-products.alpha-projects.cloud/api/v1/products";
 
 let cart = {};
 
@@ -26,24 +22,45 @@ peer.on('open', (id) => {
   connDot.classList.add('connected');
 });
 
+// Fungsi pencarian API
+async function searchProductAPI(query, isBarcode = false) {
+  try {
+    const url = isBarcode ? `${API_BASE_URL}?barcode=${encodeURIComponent(query)}` : `${API_BASE_URL}?name=${encodeURIComponent(query)}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("API Error");
+    
+    const data = await response.json();
+    if (data && data.length > 0) {
+      // Ambil hasil pertama yang paling relevan
+      return data[0]; 
+    }
+    return null;
+  } catch (error) {
+    console.error("Gagal memanggil API:", error);
+    return null;
+  }
+}
+
 peer.on('connection', (conn) => {
-  conn.on('data', (data) => {
+  conn.on('data', async (data) => {
     if (data.barcode) {
-      addToCart(data.barcode);
+      const product = await searchProductAPI(data.barcode, true);
+      if (product) {
+        addToCart(product);
+      } else {
+        alert("Barcode tidak ditemukan di sistem: " + data.barcode);
+      }
     }
     if (data.ocrText) {
       const text = data.ocrText.toLowerCase();
-      let found = false;
-      for (const [barcode, product] of Object.entries(productDB)) {
-        const productNameWords = product.name.toLowerCase().split(' ');
-        if (productNameWords.some(word => word.length > 3 && text.includes(word))) {
-          addToCart(barcode);
-          found = true;
-          break;
+      // Hanya cari jika teks cukup panjang
+      if (text.length > 3) {
+        const product = await searchProductAPI(text, false);
+        if (product) {
+          addToCart(product);
+        } else {
+          console.log("OCR Teks: " + text + " tidak ditemukan.");
         }
-      }
-      if (!found) {
-        alert("Scanner membaca teks: " + data.ocrText.substring(0, 30) + "...\nTapi tidak ada nama barang yang cocok di sistem.");
       }
     }
   });
@@ -79,7 +96,7 @@ function updateCartUI() {
   const items = Object.values(cart);
   
   if (items.length === 0) {
-    cartList.innerHTML = '<li class="empty-cart-message">Keranjang masih kosong. Silakan scan dari HP Anda...</li>';
+    cartList.innerHTML = '<li class="empty-cart-message">Keranjang masih kosong. Silakan scan dari HP atau Laptop...</li>';
     btnPay.disabled = true;
     totalPriceEl.textContent = formatRupiah(0);
     return;
@@ -92,15 +109,22 @@ function updateCartUI() {
     const subtotal = item.price * item.qty;
     total += subtotal;
 
+    const imgSrc = item.imgBarcode || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=random&color=fff`;
+
     const li = document.createElement('li');
     li.className = 'cart-item';
     li.innerHTML = `
-      <div>
-        <span class="item-name">${item.name}</span>
-        <span class="item-price">${formatRupiah(item.price)}</span>
+      <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+        <img src="${imgSrc}" alt="Gambar Produk" style="width: 45px; height: 45px; border-radius: 8px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+        <div style="display: flex; flex-direction: column; text-align: left;">
+          <span class="item-name">${item.name}</span>
+          <span class="item-price">${formatRupiah(item.price)}</span>
+        </div>
       </div>
-      <span>x${item.qty}</span>
-      <span>${formatRupiah(subtotal)}</span>
+      <div style="display: flex; align-items: center; gap: 15px; margin-left: 10px;">
+        <span style="font-weight: bold; background: var(--surface-color); padding: 5px 10px; border-radius: 5px;">x${item.qty}</span>
+        <span style="font-weight: bold; color: var(--primary-color); min-width: 80px; text-align: right;">${formatRupiah(subtotal)}</span>
+      </div>
     `;
     cartList.appendChild(li);
   });
@@ -109,19 +133,20 @@ function updateCartUI() {
   cartList.scrollTop = cartList.scrollHeight;
 }
 
-function addToCart(barcode) {
-  const product = productDB[barcode];
-  
-  if (!product) {
-    const randomPrice = Math.floor(Math.random() * 20 + 5) * 500; 
-    productDB[barcode] = { name: `Produk Tdk Dikenal (${barcode.slice(-4)})`, price: randomPrice };
-    return addToCart(barcode);
-  }
+function addToCart(product) {
+  // Gunakan ID atau barcode sebagai identifier unik
+  const identifier = product.barcode || product.id || Math.random().toString();
 
-  if (cart[barcode]) {
-    cart[barcode].qty += 1;
+  if (cart[identifier]) {
+    cart[identifier].qty += 1;
   } else {
-    cart[barcode] = { ...product, qty: 1 };
+    cart[identifier] = { 
+      name: product.name, 
+      price: product.price, 
+      qty: 1,
+      barcode: product.barcode,
+      imgBarcode: product.imgBarcode
+    };
   }
 
   playBeep();
@@ -200,14 +225,13 @@ async function runBackgroundOCR() {
     const result = await Tesseract.recognize(canvas, 'ind');
     const text = result.data.text.toLowerCase();
     
-    for (const [barcode, product] of Object.entries(productDB)) {
-      const productNameWords = product.name.toLowerCase().split(' ');
-      if (productNameWords.some(word => word.length > 3 && text.includes(word))) {
+    if (text.length > 3) {
+      const product = await searchProductAPI(text, false);
+      if (product) {
         const now = Date.now();
         if (now - lastAiDetectTime > 4000) {
-           addToCart(barcode);
+           addToCart(product);
            lastAiDetectTime = now;
-           break;
         }
       }
     }
@@ -506,12 +530,17 @@ function startLocalCamera(cameraId) {
   };
 
   const startFn = () => {
-    localScanner.start(cameraId, config, (decodedText) => {
+    localScanner.start(cameraId, config, async (decodedText) => {
       if (currentMode !== 'barcode' || !isHoldToScanActive) return;
       if (localScanner.getState() === Html5QrcodeScannerState.PAUSED) return;
       
       localScanner.pause();
-      addToCart(decodedText);
+      const product = await searchProductAPI(decodedText, true);
+      if (product) {
+        addToCart(product);
+      } else {
+        alert("Barcode tidak ditemukan di sistem: " + decodedText);
+      }
       
       setTimeout(() => {
         localScanner.resume();
