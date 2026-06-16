@@ -53,12 +53,10 @@ hpHoldOverlay.innerHTML = `
 readerContainer.appendChild(hpHoldOverlay);
 
 const startHpScan = (e) => {
-  e.preventDefault();
   isHoldToScanActive = true;
   hpHoldOverlay.style.opacity = '0';
 };
 const stopHpScan = (e) => {
-  e.preventDefault();
   isHoldToScanActive = false;
   hpHoldOverlay.style.opacity = '1';
 };

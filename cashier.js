@@ -473,12 +473,10 @@ laptopHoldOverlay.innerHTML = `
 laptopContainer.appendChild(laptopHoldOverlay);
 
 const startLaptopScan = (e) => {
-  e.preventDefault();
   isHoldToScanActive = true;
   laptopHoldOverlay.style.opacity = '0';
 };
 const stopLaptopScan = (e) => {
-  e.preventDefault();
   isHoldToScanActive = false;
   laptopHoldOverlay.style.opacity = '1';
 };
