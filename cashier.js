@@ -39,8 +39,13 @@ peer.on('disconnected', () => {
 
 peer.on('error', (err) => {
   console.error("PeerJS Error:", err);
-  connStatus.textContent = "Error Koneksi";
-  connDot.classList.remove('connected');
+  if (err.type === 'unavailable-id') {
+    connStatus.textContent = "Mode Mandiri (Utama Aktif di Tempat Lain)";
+    connDot.style.backgroundColor = 'orange';
+  } else {
+    connStatus.textContent = "Sistem Offline";
+    connDot.classList.remove('connected');
+  }
 });
 
 // --- Logic ---
