@@ -481,7 +481,21 @@ btnToggleScanner.addEventListener('click', () => {
   }
 });
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+  if (currentMode === 'ai') {
+    const targetBox = document.getElementById('laptop-targeting-box');
+    targetBox.style.display = 'block';
+    if (!cocoModel) {
+      aiLoading.style.display = 'flex';
+      try {
+        cocoModel = await cocoSsd.load();
+      } catch(err) {
+        console.error("Gagal memuat AI on load", err);
+      }
+      aiLoading.style.display = 'none';
+    }
+  }
+
   setTimeout(() => {
     btnToggleScanner.click();
   }, 1000);
