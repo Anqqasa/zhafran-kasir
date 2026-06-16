@@ -267,10 +267,26 @@ Html5Qrcode.getCameras().then(devices => {
     const selectedCameraId = defaultCamera ? defaultCamera.id : devices[devices.length - 1].id;
     cameraSelect.value = selectedCameraId;
 
+    const hpReader = document.getElementById('reader');
+    
+    // Terapkan efek cermin HANYA jika bukan kamera belakang
+    const isBackCamera = defaultCamera !== undefined || (devices[devices.length - 1].label && devices[devices.length - 1].label.toLowerCase().includes('back'));
+    if (isBackCamera) {
+      hpReader.classList.remove('mirror-camera');
+    } else {
+      hpReader.classList.add('mirror-camera');
+    }
+
     startCamera(selectedCameraId);
 
     // Ubah kamera saat pengguna memilih dari dropdown
     cameraSelect.addEventListener('change', (e) => {
+      const selectedOption = cameraSelect.options[cameraSelect.selectedIndex].text.toLowerCase();
+      if (selectedOption.includes('back') || selectedOption.includes('belakang') || selectedOption.includes('environment')) {
+        hpReader.classList.remove('mirror-camera');
+      } else {
+        hpReader.classList.add('mirror-camera');
+      }
       startCamera(e.target.value);
     });
 
