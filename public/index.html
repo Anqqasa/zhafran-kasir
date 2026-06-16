@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layar Kasir Utama</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Paksa efek cermin (Kanan jadi Kanan) */
+    #laptop-reader video {
+      transform: scaleX(-1) !important;
+      -webkit-transform: scaleX(-1) !important;
+    }
+    .targeting-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      height: 200px;
+      border: 2px solid var(--primary-color);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>TOKO ZHAFRAN</h1>
+    <p>Sistem Kasir Pintar Berbasis AI</p>
+  </header>
+
+  <main class="container single-column">
+    <section class="local-scanner-section glass-panel" style="margin-bottom: 20px; text-align: center; background: var(--surface-color); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md);">
+      
+      <div class="mode-toggle">
+        <label><input type="radio" name="laptop-mode" value="barcode"> 📱 Barcode</label>
+        <label><input type="radio" name="laptop-mode" value="ai" checked> 🤖 Deteksi Benda (AI)</label>
+      </div>
+
+      <button id="btn-toggle-scanner" class="btn btn-primary" style="background-color: var(--primary-color);">📷 Gunakan Kamera Laptop</button>
+      
+      <div id="laptop-reader-container" style="position: relative; display: none; margin-top: 20px; border-radius: var(--radius-md); overflow: hidden; height: 350px;">
+        <div id="ai-loading" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:var(--primary-color); align-items:center; justify-content:center; z-index:10; font-weight:bold; letter-spacing:1px;">Memuat Otak AI...</div>
+        <div id="laptop-reader" style="width:100%; height:100%;"></div>
+        <canvas id="laptop-ai-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:5; pointer-events:none;"></canvas>
+        <div class="targeting-box" id="laptop-targeting-box" style="display:none;"></div>
+      </div>
+    </section>
+
+    <section class="receipt-section glass-panel">
+      <div class="receipt-container">
+        <div class="receipt-header">
+          <h2>🛒 Struk Belanja</h2>
+          <div class="connection-status" id="connection-status">
+            🔴 Menunggu Scanner...
+          </div>
+        </div>
+        
+        <div class="cart-items" id="cart-items">
+          <div class="empty-state">Belum ada barang yang di-scan.</div>
+        </div>
+        
+        <div class="receipt-total">
+          <span>Total Bayar:</span>
+          <span id="cart-total">Rp 0</span>
+        </div>
+      </div>
+      
+      <div class="receipt-footer">
+        <button id="btn-pay" class="btn btn-success btn-large" disabled>Bayar / Selesai</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Edit Barang -->
+  <div id="edit-modal" class="modal" style="display: none;">
+    <div class="modal-content glass-panel">
+      <h3>✏️ Edit Barang</h3>
+      <input type="hidden" id="edit-item-id">
+      <div class="form-group">
+        <label>Nama Barang</label>
+        <input type="text" id="edit-item-name" class="modal-input">
+      </div>
+      <div class="form-group">
+        <label>Harga (Rp)</label>
+        <input type="number" id="edit-item-price" class="modal-input">
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-edit" class="btn btn-secondary">Batal</button>
+        <button id="btn-save-edit" class="btn btn-primary">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <!-- Load TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <!-- Load COCO-SSD model -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/cashier.js"></script>
+</body>
+</html>
